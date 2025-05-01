@@ -324,7 +324,6 @@ ggplot() +
     size = 3,
     fill = "white"
   ) +
-  
   labs(
     title = "Most Populous Cities in Each State Within 100 Miles of the Border"
   ) +
