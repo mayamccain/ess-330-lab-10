@@ -4,8 +4,9 @@ subtitle: "ESS 330"
 author:
   - name: "Maya McCain"
     email: "maya.mccain@colostate.edu"
-format: html
-  self-contained: true 
+format: 
+  html:
+    self-contained: true 
 editor: visual
 ---
 
