@@ -5,6 +5,7 @@ author:
   - name: "Maya McCain"
     email: "maya.mccain@colostate.edu"
 format: html
+  self-contained: true 
 editor: visual
 ---
 
