@@ -329,6 +329,5 @@ ggplot() +
     title = "Most Populous Cities in Each State Within 100 Miles of the Border"
   ) +
   ggthemes::theme_map()
-
 ```
 
