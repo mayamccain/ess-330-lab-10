@@ -148,6 +148,7 @@ conus_states <- AOI::aoi_get(state = "conus") %>%
   st_cast("MULTILINESTRING")
 
 conus_outline <- AOI::aoi_get(state = "conus") %>%
+  filter(!state_abbr %in% c("HI", "AK", "PR")) %>%
   st_union() %>%
   st_cast("MULTILINESTRING") %>% 
   st_as_sf()
@@ -210,7 +211,8 @@ ggplot() +
 ```{r}
 cities <- cities %>%
   mutate(dist_to_mexico = set_units(st_distance(., mexico_combine), "km")) %>% 
-  mutate(dist_to_canada = set_units(st_distance(., canada_combine), "km"))
+  mutate(dist_to_canada = set_units(st_distance(., canada_combine), "km")) %>% 
+  mutate(dist_to_border = set_units(st_distance(., state_union), "km"))
 ```
 
 
@@ -240,5 +242,93 @@ ggplot() +
     stat = "sf_coordinates",
     size = 3) +
   ggthemes::theme_map() 
+```
+# Question 4
+## 4.1 Quantifing Border Zone
+```{r}
+border_zone <- cities %>%
+  filter(as.numeric(dist_to_border) <= 160)
+
+n_border_zone <- nrow(border_zone)
+
+border_zone_pop <- border_zone %>%
+  st_drop_geometry() %>%
+  summarise(total_population = sum(population, na.rm = TRUE)) %>%
+  pull(total_population)
+
+total_pop <- cities %>%
+  st_drop_geometry() %>%
+  summarise(total_population = sum(population, na.rm = TRUE)) %>%
+  pull(total_population)
+
+pop_percentage <- (border_zone_pop / total_pop) * 100
+
+summary_df <- data.frame(
+  `Number of Cities in Border Zone` = n_border_zone,
+  `Population in Border Zone` = border_zone_pop,
+  `Total Population (All Cities)` = total_pop,
+  `Percent in Border Zone (%)` = round(pop_percentage, 2)
+)
+
+flextable::flextable(summary_df)
+
+```
+This information matches the ACLU estimate that about two-thirds of the population lives in the danger zone (within 100 miles of the US border). 
+
+## 4.2 Mapping Border Zone
+```{r}
+border_zone <- cities %>%
+  filter(as.numeric(dist_to_border) <= 160)
+
+danger_top10 <- border_zone %>%
+  slice_max(population, n = 10)
+
+ggplot() +
+  geom_sf(data = cities, aes(color = population), alpha = 0.4, size = 0.8) +
+  gghighlight::gghighlight(as.numeric(dist_to_border) <= 160,
+                           label_key = city,
+                           use_direct_label = FALSE,
+                           keep_scales = TRUE) +
+  scale_color_gradient(low = "orange", high = "darkred", name = "Distance to Border") +
+  geom_sf(data = danger_top10, color = "black", size = 2) +
+  ggrepel::geom_label_repel(
+    data = danger_top10,
+    aes(label = city, geometry = geometry),
+    stat = "sf_coordinates",
+    size = 3,
+    fill = "white"
+  ) +
+  labs(title = "U.S. Cities Within 100 Miles of the Border") +
+  ggthemes::theme_map()
+
+```
+
+## 4.3 : Instead of labeling the 10 most populous cites, label the most populous city in each state within the Danger Zone
+```{r}
+border_zone <- cities %>%
+  filter(as.numeric(dist_to_border) <= 160)
+
+top_city_per_state <- border_zone %>%
+  group_by(state_name) %>%
+  slice_max(population, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+ggplot() +
+  geom_sf(data = border_zone, aes(color = population), alpha = 0.6, size = 1) +
+  scale_color_gradient(low = "orange", high = "darkred", name = "Distance to Border") +
+  geom_sf(data = top_city_per_state, color = "black", size = 2) +
+  ggrepel::geom_label_repel(
+    data = top_city_per_state,
+    aes(label = city, geometry = geometry),
+    stat = "sf_coordinates",
+    size = 3,
+    fill = "white"
+  ) +
+  
+  labs(
+    title = "Most Populous Cities in Each State Within 100 Miles of the Border"
+  ) +
+  ggthemes::theme_map()
+
 ```
 
